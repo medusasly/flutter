@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/mpesa_service.dart';
+import 'package:flutter_mpesa_stk/flutter_mpesa_stk.dart';
+import 'package:flutter_mpesa_stk/models/Mpesa.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../providers/cart_provider.dart';
 import 'order_summary.dart';
 
@@ -37,26 +40,48 @@ class _MpesaPageState extends State<MpesaPage> {
       _statusMessage = 'Initiating M-Pesa STK push...';
     });
 
-    final result = await MpesaService.initiateStkPush(
-      phoneNumber: phone,
-      amount: amount,
-      accountReference: 'GasLy${DateTime.now().millisecondsSinceEpoch}',
-      transactionDesc: 'Gas Order Payment - KES ${amount.toStringAsFixed(0)}',
+    // Get credentials from .env
+    final consumerKey = dotenv.env['MPESA_CONSUMER_KEY'] ?? '';
+    final consumerSecret = dotenv.env['MPESA_CONSUMER_SECRET'] ?? '';
+    final passkey = dotenv.env['MPESA_PASSKEY'] ?? '';
+    final shortCode = dotenv.env['MPESA_SHORTCODE'] ?? '174379';
+    
+    // Generate STK password (base64 of shortcode+passkey+timestamp)
+    final timestamp = DateTime.now().toString().replaceAll(RegExp(r'[^0-9]'), '').substring(0, 14);
+    final password = base64Encode(utf8.encode('$shortCode$passkey$timestamp'));
+    
+    final response = await FlutterMpesaSTK(
+      consumerKey,
+      consumerSecret,
+      password,
+      shortCode,
+      'https://postman-echo.com/post', // Callback URL
+      'Payment failed. Please try again.',
+      env: 'testing', // Use 'production' for live
+    ).stkPush(
+      Mpesa(
+        amount.ceil(),
+        phone,
+        accountReference: 'GasLy${DateTime.now().millisecondsSinceEpoch}',
+        transactionDesc: 'Gas Order Payment - KES ${amount.toStringAsFixed(0)}',
+      ),
     );
 
     setState(() {
       _isLoading = false;
-      _statusMessage = result['message'];
+      _statusMessage = response.status 
+          ? 'STK push sent! Check your phone and enter M-Pesa PIN'
+          : 'Payment failed: ${response.body}';
     });
 
-    if (result['success'] == true) {
+    if (response.status == true) {
       // Payment initiated successfully
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['customerMessage'] ?? 'Check your phone for M-Pesa prompt'),
+          const SnackBar(
+            content: Text('Check your phone for M-Pesa prompt and enter PIN'),
             backgroundColor: Colors.green,
-            duration: const Duration(seconds: 5),
+            duration: Duration(seconds: 5),
           ),
         );
 
@@ -76,7 +101,7 @@ class _MpesaPageState extends State<MpesaPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message'] ?? 'Payment failed'),
+            content: Text('Payment failed: ${response.body}'),
             backgroundColor: Colors.red,
           ),
         );

@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
 import '../screens/app_theme.dart';
 import 'mpesa.dart';
-import 'card.dart';
+import 'order_summary.dart';
 
 class CheckoutPage extends StatelessWidget {
   const CheckoutPage({super.key});
@@ -164,24 +164,20 @@ class CheckoutPage extends StatelessWidget {
                   const SizedBox(height: 16),
                   _paymentTile(
                     context,
-                    title: 'Credit/Debit Card',
-                    subtitle: 'Visa, Mastercard, etc.',
-                    icon: Icons.credit_card,
-                    color: const Color(0xFF1A1F71),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const CardPage()),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _paymentTile(
-                    context,
                     title: 'Cash on Delivery',
                     subtitle: 'Pay when you receive',
                     icon: Icons.payments_outlined,
                     color: AppTheme.accent,
                     onTap: () {
-                      // Handle cash on delivery
+                      final cart = context.read<CartProvider>();
+                      cart.clear();
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const OrderSummaryPage(method: "Cash on Delivery"),
+                        ),
+                        (route) => route.isFirst,
+                      );
                     },
                   ),
                 ],

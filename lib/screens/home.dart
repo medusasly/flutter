@@ -1,63 +1,92 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/products.dart';
 import '../widgets/product_card.dart';
+import '../providers/auth_provider.dart';
+import 'profile_screen.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  final List<Product> _allProducts = [
+    Product(
+      name: "Total Gas 13kg",
+      price: 3450,
+      image: "assets/images/total-13kg.png",
+      brand: "TOTAL",
+      weight: "13kg",
+    ),
+    Product(
+      name: "Total Gas 6kg",
+      price: 1950,
+      image: "assets/images/total6kg.png",
+      brand: "TOTAL",
+      weight: "6kg",
+    ),
+    Product(
+      name: "K-Gas 13kg",
+      price: 3450,
+      image: "assets/images/k-gas-13.png",
+      brand: "K-GAS",
+      weight: "13kg",
+    ),
+    Product(
+      name: "K-Gas 6kg",
+      price: 1620,
+      image: "assets/images/k-gas.png",
+      brand: "K-GAS",
+      weight: "6kg",
+    ),
+    Product(
+      name: "Shell Gas 13kg",
+      price: 3600,
+      image: "assets/images/shell-13kg.png",
+      brand: "SHELL",
+      weight: "13kg",
+    ),
+    Product(
+      name: "Shell Gas 6kg",
+      price: 1900,
+      image: "assets/images/shell-6kg.png",
+      brand: "SHELL",
+      weight: "6kg",
+    ),
+    Product(
+      name: "Gas Regulator",
+      price: 850,
+      image: "assets/images/regulator.png",
+      brand: "Generic",
+      weight: "",
+    ),
+  ];
+
+  List<Product> get _filteredProducts {
+    if (_searchQuery.isEmpty) {
+      return _allProducts;
+    }
+    return _allProducts.where((product) {
+      return product.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          product.brand.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final products = [
-      Product(
-        name: "Total Gas 13kg",
-        price: 3510,
-        image: "assets/images/total-13kg.png",
-        brand: "Total",
-        weight: "13kg",
-      ),
-      Product(
-        name: "Total Gas 6kg",
-        price: 1850,
-        image: "assets/images/total6kg.png",
-        brand: "Total",
-        weight: "6kg",
-      ),
-      Product(
-        name: "K-Gas 13kg",
-        price: 3450,
-        image: "assets/images/k-gas-13.png",
-        brand: "K-Gas",
-        weight: "13kg",
-      ),
-      Product(
-        name: "K-Gas 6kg",
-        price: 1620,
-        image: "assets/images/k-gas.png",
-        brand: "K-Gas",
-        weight: "6kg",
-      ),
-      Product(
-        name: "Shell Gas 13kg",
-        price: 3600,
-        image: "assets/images/shell-13kg.png",
-        brand: "Shell",
-        weight: "13kg",
-      ),
-      Product(
-        name: "Shell Gas 6kg",
-        price: 1900,
-        image: "assets/images/shell-6kg.png",
-        brand: "Shell",
-        weight: "6kg",
-      ),
-      Product(
-        name: "Gas Regulator",
-        price: 850,
-        image: "assets/images/regulator.png",
-        brand: "Generic",
-        weight: "",
-      ),
-    ];
+    final filteredProducts = _filteredProducts;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF9F7),
@@ -109,16 +138,27 @@ class HomePage extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.person_outline,
-                      color: Colors.white,
-                      size: 22,
+                  // Profile Button - Functional
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ProfileScreen(),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.person_outline,
+                        color: Colors.white,
+                        size: 22,
+                      ),
                     ),
                   ),
                 ],
@@ -126,11 +166,11 @@ class HomePage extends StatelessWidget {
             ),
           ),
 
-          // Search bar - warm, inviting
+          // Search bar - Functional with TextField
           SliverToBoxAdapter(
             child: Container(
               margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -147,13 +187,39 @@ class HomePage extends StatelessWidget {
                     size: 22,
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    "Search gas brands...",
-                    style: TextStyle(
-                      color: const Color(0xFF2D3436).withOpacity(0.4),
-                      fontSize: 15,
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value;
+                        });
+                      },
+                      decoration: const InputDecoration(
+                        hintText: "Search gas brands...",
+                        hintStyle: TextStyle(
+                          color: Color(0xFF999999),
+                          fontSize: 15,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 14),
+                      ),
                     ),
                   ),
+                  if (_searchQuery.isNotEmpty)
+                    GestureDetector(
+                      onTap: () {
+                        _searchController.clear();
+                        setState(() {
+                          _searchQuery = '';
+                        });
+                      },
+                      child: Icon(
+                        Icons.close,
+                        color: const Color(0xFF2D3436).withOpacity(0.4),
+                        size: 20,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -247,9 +313,9 @@ class HomePage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    "Available Now",
-                    style: TextStyle(
+                  Text(
+                    _searchQuery.isEmpty ? "Available Now" : "Search Results",
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF2D3436),
@@ -271,8 +337,8 @@ class HomePage extends StatelessWidget {
                 mainAxisSpacing: 14,
               ),
               delegate: SliverChildBuilderDelegate(
-                (context, index) => ProductCard(product: products[index]),
-                childCount: products.length,
+                (context, index) => ProductCard(product: filteredProducts[index]),
+                childCount: filteredProducts.length,
               ),
             ),
           ),
